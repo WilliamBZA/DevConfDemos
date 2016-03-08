@@ -24,11 +24,11 @@ namespace TheBankOfAkka
 
     public class DollarParton : ReceiveActor
     {
-        private decimal _currentBalance;
+        public decimal CurrentBalance;
 
         protected override void PreStart()
         {
-            _currentBalance = 70;
+            CurrentBalance = 70;
             Become(() =>
             {
                 Receive<DrawCash>(msg => DrawCash(msg));
@@ -39,19 +39,14 @@ namespace TheBankOfAkka
 
         private bool CanDraw(decimal amount)
         {
-            return _currentBalance - amount >= 0;
+            return CurrentBalance - amount >= 0;
         }
 
         private void DrawCash(DrawCash request)
         {
             if (CanDraw(request.Amount))
             {
-                _currentBalance -= request.Amount;
-
-                if (_currentBalance < 0)
-                {
-                    throw new ApplicationException("lol");
-                }
+                CurrentBalance -= request.Amount;
 
                 Sender.Tell(true);
             }
@@ -64,23 +59,23 @@ namespace TheBankOfAkka
 
     public class WithdrawActor : ReceiveActor
     {
-        private IActorRef _bankActor;
+        private IActorRef dollarParton;
 
         protected override void PreStart()
         {
-            _bankActor = Context.ActorOf<DollarParton>();
+            dollarParton = Context.ActorOf<DollarParton>();
 
             Become(() =>
             {
-                Receive<RequestCash>(msg => AskForMoney(msg.Amount));
+                Receive<RequestCash>(msg => DrawMoney(msg.Amount));
             });
 
             base.PreStart();
         }
 
-        protected async Task AskForMoney(decimal amount)
+        protected async Task DrawMoney(decimal amount)
         {
-            var wasSuccessful = await _bankActor.Ask<bool>(new DrawCash { Amount = amount });
+            var wasSuccessful = await dollarParton.Ask<bool>(new DrawCash { Amount = amount });
         }
     }
 

@@ -16,24 +16,32 @@ namespace LockingImplementation
                 var cashton = new BadActor(tom, 50);
                 var bill = new BadActor(tom, 70);
 
-                Parallel.ForEach(new Action[] { () => cashton.DrawMoney(), () => bill.DrawMoney() }, t => t());
+                Task.WaitAll(new[] {
+                    Task.Run(() => cashton.DrawMoney()),
+                    Task.Run(() => bill.DrawMoney())
+                });
+
+                if (tom.CurrentBalance < 0)
+                {
+                    throw new ApplicationException("LOL");
+                }
             }
         }
     }
 
     public class TomBanks
     {
-        public decimal _currentBalance;
+        public decimal CurrentBalance;
         public object _lock = new object();
 
         public TomBanks(decimal startBalance)
         {
-            _currentBalance = startBalance;
+            CurrentBalance = startBalance;
         }
 
         private bool CanDraw(decimal amount)
         {
-            return _currentBalance - amount >= 0;
+            return CurrentBalance - amount >= 0;
         }
 
         public bool DrawCash(decimal amount)
@@ -46,12 +54,7 @@ namespace LockingImplementation
                     {
                         System.Threading.Thread.MemoryBarrier();
 
-                        _currentBalance -= amount;
-
-                        if (_currentBalance < 0)
-                        {
-                            throw new InvalidOperationException("lol");
-                        }
+                        CurrentBalance -= amount;
 
                         return true;
                     }

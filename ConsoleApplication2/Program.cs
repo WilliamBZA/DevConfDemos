@@ -18,30 +18,33 @@ namespace NaiveImplementation
                 var cashton = new BadActor(tom, withdraw: 50);
                 var bill = new BadActor(tom, withdraw: 70);
 
-                Parallel.ForEach(new Action[] { () => cashton.DrawMoney(), () => bill.DrawMoney() }, t => t());
+                Task.WaitAll(new[] {
+                    Task.Run(() => cashton.DrawMoney()),
+                    Task.Run(() => bill.DrawMoney())
+                });
+
+                if (tom.CurrentBalance < 0)
+                {
+                    throw new ApplicationException("LOL");
+                }
             }
         }
     }
 
     public class TomBanks
     {
-        public decimal _currentBalance;
+        public decimal CurrentBalance;
 
         public TomBanks(decimal startBalance = 0)
         {
-            _currentBalance = startBalance;
+            CurrentBalance = startBalance;
         }
 
         public bool DrawCash(decimal amount)
         {
             if (CanDraw(amount))
             {
-                _currentBalance -= amount;
-
-                if (_currentBalance < 0)
-                {
-                    throw new InvalidOperationException("lol");
-                }
+                CurrentBalance -= amount;
 
                 return true;
             }
@@ -53,7 +56,7 @@ namespace NaiveImplementation
 
         private bool CanDraw(decimal amount)
         {
-            return _currentBalance - amount >= 0;
+            return CurrentBalance - amount >= 0;
         }
     }
 
